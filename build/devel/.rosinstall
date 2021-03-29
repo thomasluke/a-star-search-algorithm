@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/user/catkin_ws/src/a-star-search-algorithm/build/devel/setup.sh

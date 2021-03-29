@@ -1,0 +1,8 @@
+prefix=/home/user/catkin_ws/src/a-star-search-algorithm/build/devel
+
+Name: path_planner
+Description: Description of path_planner
+Version: 0.0.1
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

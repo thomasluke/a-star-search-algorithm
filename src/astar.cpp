@@ -245,48 +245,42 @@ void ASTAR::policy(Node start_node, Node goal_node)
 
   // YOUR CODE GOES HERE
 
-  Grid neighbour;
-  Grid min_cost_neighbour = gridmap_.at(current.x).at(current.y);
+  Grid neighbour_grid;
+  Grid min_cost_neighbour_grid = gridmap_.at(current.y).at(current.x);
   Node neighbour_node;
+  vector<int> left = {-1, 0};
+  vector<int> above = {0, 1};
+  vector<int> right = {1, 0};
+  vector<int> below = {0, -1};
+  vector<vector<int>> neighbour_positions = {left, above, right, below};
+
   int grid_x;
   int grid_y;
 
   while (current.x != start_node.x && current.y != start_node.y)
   {
 
-    for (int x = -1; x <= 1; x += 2)
+    for (int i = 0; i < neighbour_positions.size(); i++)
     {
-      grid_x = current.x + x;
-      grid_y = current.y;
 
-      neighbour = gridmap_.at(grid_x).at(grid_y);
+      grid_x = current.x + neighbour_positions.at(i).at(0);
+      grid_y = current.y + neighbour_positions.at(i).at(1);
 
-      if (neighbour.expand < min_cost_neighbour.expand)
+      neighbour_grid = gridmap_.at(neighbour_node.y).at(neighbour_node.x);
+
+      if (neighbour_grid.expand < min_cost_neighbour_grid.expand)
       {
-        min_cost_neighbour = neighbour;
         neighbour_node.x = grid_x;
         neighbour_node.y = grid_y;
-      }
-    }
 
-    for (int y = -1; y <= 1; y += 2)
-    {
-      grid_x = current.x;
-      grid_y = current.y + y;
-
-      neighbour = gridmap_.at(grid_x).at(grid_y);
-
-      if (neighbour.expand < min_cost_neighbour.expand)
-      {
-        min_cost_neighbour = neighbour;
-        neighbour_node.x = grid_x;
-        neighbour_node.y = grid_y;
+        min_cost_neighbour_grid = neighbour_grid;
       }
     }
 
     current = neighbour_node;
     optimum_policy_.push_back(current);
   }
+  std::cout << "Optimum Policy Size: " << optimum_policy_.size() << std::endl;
 }
 
 // update waypoints
@@ -338,8 +332,13 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
 
   double error;
   double combined_error;
+
   vector<Waypoint> smooth_waypoints_ = waypoints_;
-  int length = smooth_waypoints_.size()-2;
+  std::cout << "Smooth waypoints size: " << smooth_waypoints_.size() << std::endl;
+  std::cout << "ERROR HERE BECAUSE NOT ENOUGH WAYPOINTS??? VECTOR SIZE IS TRYING TO BE LESS THAN 0" << std::endl;
+
+  int length = smooth_waypoints_.size() - 2;
+
   vector<Waypoint> smooth_waypoints_new(length);
 
   while (combined_error > tolerance)
@@ -396,43 +395,72 @@ bool ASTAR::path_search()
 
   Node current_node = start_node;
   Node neighbour_node;
-  vector<Node> open_list;
+  vector<Node> open_list = {start_node};
   double heuristic;
-  double original_cost = 0;
+  double expand = 0;
+  bool neighbour_in_open_list = false;
 
+  vector<int> left = {-1, 0};
+  vector<int> above = {0, 1};
+  vector<int> right = {1, 0};
+  vector<int> below = {0, -1};
+  vector<vector<int>> neighbour_positions = {left, above, right, below};
+
+  // Repeat until the goal node is found
   while (current_node.x != goal_node.x && current_node.y != goal_node.y)
   {
+    //Remove lowest cost node from the open list
+    open_list.erase(open_list.end() - 1);
 
-    original_cost++;
+    // Mark cell at the removed node position as closed
+    gridmap_.at(current_node.y).at(current_node.x).closed = 1;
 
-    for (int x = -1; x <= 1; x += 2)
+    expand++;
+
+    // Check the each of the neighbours on the left, above, right and below the current node
+    for (int i = 0; i < neighbour_positions.size(); i++)
     {
+      neighbour_node.x = current_node.x + neighbour_positions.at(i).at(0);
+      neighbour_node.y = current_node.y + neighbour_positions.at(i).at(1);
+      neighbour_node.cost = current_node.cost + 1;
 
-      neighbour_node.x = current_node.x + x;
-      neighbour_node.y = current_node.y;
+      // If the neighbour node cell is not already closed then continue
+      if (gridmap_.at(neighbour_node.y).at(neighbour_node.x).closed != 1)
+      {
+        // Flag to check if neighbour node is in the open list already
+        neighbour_in_open_list = false;
 
-      heuristic = gridmap_.at(neighbour_node.x).at(neighbour_node.y).heuristic;
-      neighbour_node.cost = original_cost + (lambda_ * heuristic);
+        // Cycle through every cell in the open list to check whether the neighbour is already present
+        for (int j = 0; i < open_list.size(); j++)
+        {
+          // If the neighbour node is in the open list
+          if (open_list.at(j).x == neighbour_node.x && open_list.at(j).y == neighbour_node.y)
+          {
+            // Set the flag for neighbour being in the open list
+            neighbour_in_open_list = true;
 
-      open_list.push_back(neighbour_node);
+            // Id the neighbour node has a lower cost than the same node in the open list,
+            // then replace the node in the open list
+            if (neighbour_node.cost < open_list.at(j).cost)
+            {
+              open_list.at(j) = neighbour_node;
+            }
+          }
+        }
+
+        // If the neighbour node is not already in the open list (i.e. flag == false)
+        if (neighbour_in_open_list == false)
+        {
+          open_list.push_back(neighbour_node);
+          gridmap_.at(neighbour_node.y).at(neighbour_node.x).expand = expand;
+        }
+      }
     }
-
-    for (int y = -1; y <= 1; y += 2)
-    {
-      neighbour_node.x = current_node.x;
-      neighbour_node.y = current_node.y + y;
-
-      heuristic = gridmap_.at(neighbour_node.x).at(neighbour_node.y).heuristic;
-      neighbour_node.cost = original_cost + (lambda_ * heuristic);
-
-      open_list.push_back(neighbour_node);
-    }
-
-
+    // Sort the open list so that the lowest cost node is at the back/end
     open_list = descending_sort(open_list);
-      
+
+    // Update this here before the while loop condition
     current_node = open_list.back();
-    open_list.erase(open_list.end()-1);
   }
 
   std::cout << "\nupdating policy" << endl;

@@ -26,7 +26,7 @@ ASTAR::ASTAR(ros::NodeHandle &nh)
   nh_->param<double>("goalx", goal_[0], 2.50);
   nh_->param<double>("goaly", goal_[1], 1.50);
 
-  cout << "setting parameters ... done!\n";
+  std::cout << "setting parameters ... done!\n";
   map_img_ = cv::imread(ros::package::getPath("path_planner") + "/data/map.png", CV_LOAD_IMAGE_GRAYSCALE);
   plan_pub_ = nh.advertise<nav_msgs::Path>("plan", 1);
 
@@ -79,7 +79,7 @@ void ASTAR::print_list(vector<Node> nodelist)
   for (int i = 0; i < (int)nodelist.size(); ++i)
   {
     Node &n = nodelist[i];
-    cout << "idx [" << n.x << ", " << n.y << "] with cost = " << n.cost << endl;
+    std::cout << "idx [" << n.x << ", " << n.y << "] with cost = " << n.cost << endl;
   }
 }
 
@@ -99,26 +99,26 @@ void ASTAR::print_grid_props(const char *c)
     for (int j = 0; j < grid_width_; ++j)
     {
       if (strcmp(c, "c") == 0)
-        cout << gridmap_[i][j].closed << " ";
+        std::cout << gridmap_[i][j].closed << " ";
       else if (strcmp(c, "h") == 0)
-        cout << gridmap_[i][j].heuristic << " ";
+        std::cout << gridmap_[i][j].heuristic << " ";
       else if (strcmp(c, "e") == 0)
-        cout << gridmap_[i][j].expand << " ";
+        std::cout << gridmap_[i][j].expand << " ";
       else if (strcmp(c, "o") == 0)
-        cout << gridmap_[i][j].occupied << " ";
+        std::cout << gridmap_[i][j].occupied << " ";
     }
-    cout << endl;
+    std::cout << endl;
   }
-  cout << endl;
+  std::cout << endl;
 }
 
 void ASTAR::print_waypoints(vector<Waypoint> waypoints)
 {
-  cout << "Waypoints:\n";
+  std::cout << "Waypoints:\n";
   for (int i = 0; i < (int)waypoints.size(); ++i)
   {
     Waypoint &w = waypoints[i];
-    cout << "[" << w.x << ", " << w.y << "]\n";
+    std::cout << "[" << w.x << ", " << w.y << "]\n";
   }
 }
 
@@ -162,7 +162,7 @@ void ASTAR::setup_gridmap()
   grid_height_ = int(ceil(map_height_ / grid_resolution_));
   grid_width_ = int(ceil(map_width_ / grid_resolution_));
 
-  cout << "grid: size = ( " << grid_width_ << " x " << grid_height_ << " )" << endl;
+  std::cout << "grid: size = ( " << grid_width_ << " x " << grid_height_ << " )" << endl;
 
   for (int y = 0; y < grid_height_; ++y)
   {
@@ -217,7 +217,7 @@ void ASTAR::init_heuristic(Node goal_node)
 
   for (int i = 0; i < gridmap_.size(); i++)
   {
-    for (int j = 0; j < gridmap_.size(); j++)
+    for (int j = 0; j < gridmap_.at(i).size(); j++)
     {
       int x = std::abs(i - goal_node.x);
       int y = std::abs(j - goal_node.y);
@@ -339,22 +339,22 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
   double error;
   double combined_error;
   vector<Waypoint> smooth_waypoints_ = waypoints_;
-  vector<Waypoint> smooth_waypoints_new;
+  int length = smooth_waypoints_.size()-2;
+  vector<Waypoint> smooth_waypoints_new(length);
 
   while (combined_error > tolerance)
   {
     for (int i = 1; i < waypoints_.size() - 1; i++)
     {
-
       smooth_waypoints_new.at(i - 1).x = smooth_waypoints_.at(i).x - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).x) + (weight_data * waypoints_.at(i).x) + (weight_smooth * (smooth_waypoints_.at(i - 1).x)) + (weight_smooth * (smooth_waypoints_.at(i + 1).x));
       smooth_waypoints_new.at(i - 1).y = smooth_waypoints_.at(i).y - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).y) + (weight_data * waypoints_.at(i).y) + (weight_smooth * (smooth_waypoints_.at(i - 1).y)) + (weight_smooth * (smooth_waypoints_.at(i + 1).y));
     }
 
     combined_error = 0;
 
-    for (int i = 0; i < smooth_waypoints_.size(); i++)
+    for (int i = 0; i < smooth_waypoints_new.size(); i++)
     {
-      error = std::pow(smooth_waypoints_.at(i + 1).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i + 1).y - smooth_waypoints_.at(i + 1).y, 2);
+      error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i).y - smooth_waypoints_.at(i + 1).y, 2);
       combined_error = combined_error + error;
     }
   }
@@ -381,8 +381,8 @@ bool ASTAR::path_search()
   if (gridmap_[start_node.y][start_node.x].occupied != 0 ||
       gridmap_[goal_node.y][goal_node.x].occupied != 0)
   {
-    cout << "The goal/start is occupied\n";
-    cout << "Please change another position\n";
+    std::cout << "The goal/start is occupied\n";
+    std::cout << "Please change another position\n";
     return false;
   }
 
@@ -394,10 +394,51 @@ bool ASTAR::path_search()
   // create open list
   // YOUR CODE GOES HERE
 
-  cout << "\nupdating policy" << endl;
+  Node current_node = start_node;
+  Node neighbour_node;
+  vector<Node> open_list;
+  double heuristic;
+  double original_cost = 0;
+
+  while (current_node.x != goal_node.x && current_node.y != goal_node.y)
+  {
+
+    original_cost++;
+
+    for (int x = -1; x <= 1; x += 2)
+    {
+
+      neighbour_node.x = current_node.x + x;
+      neighbour_node.y = current_node.y;
+
+      heuristic = gridmap_.at(neighbour_node.x).at(neighbour_node.y).heuristic;
+      neighbour_node.cost = original_cost + (lambda_ * heuristic);
+
+      open_list.push_back(neighbour_node);
+    }
+
+    for (int y = -1; y <= 1; y += 2)
+    {
+      neighbour_node.x = current_node.x;
+      neighbour_node.y = current_node.y + y;
+
+      heuristic = gridmap_.at(neighbour_node.x).at(neighbour_node.y).heuristic;
+      neighbour_node.cost = original_cost + (lambda_ * heuristic);
+
+      open_list.push_back(neighbour_node);
+    }
+
+
+    open_list = descending_sort(open_list);
+      
+    current_node = open_list.back();
+    open_list.erase(open_list.end()-1);
+  }
+
+  std::cout << "\nupdating policy" << endl;
   policy(start_node, goal_node);
 
-  cout << "\nupdating waypoints" << endl;
+  std::cout << "\nupdating waypoints" << endl;
   update_waypoints(start_);
 
   initialised_ = true;

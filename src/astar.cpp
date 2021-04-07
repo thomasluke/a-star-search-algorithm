@@ -215,14 +215,14 @@ void ASTAR::init_heuristic(Node goal_node)
 
   // YOUR CODE GOES HERE
 
-  for (int i = 0; i < gridmap_.size(); i++)
+  for (int j = 0; j < gridmap_.size(); j++)
   {
-    for (int j = 0; j < gridmap_.at(i).size(); j++)
+    for (int i = 0; i < gridmap_.at(j).size(); i++)
     {
       int x = std::abs(i - goal_node.x);
       int y = std::abs(j - goal_node.y);
 
-      gridmap_.at(i).at(j).heuristic = x + y;
+      gridmap_.at(j).at(i).heuristic = x + y;
     }
   }
 }
@@ -284,6 +284,7 @@ void ASTAR::policy(Node start_node, Node goal_node)
 
     current = neighbour_node;
     optimum_policy_.push_back(current);
+    std::cout << min_cost_neighbour_grid.expand << endl;
   }
   std::cout << "optimum policy size" << optimum_policy_.size() << std::endl;
 }
@@ -303,9 +304,9 @@ void ASTAR::update_waypoints(double *robot_pose)
     waypoints_.push_back(w);
   }
 
-  smooth_path(0.5, 0.3);
+  // smooth_path(0.5, 0.3);
 
-  std::cout<<waypoints_.size()<<endl;
+  std::cout << waypoints_.size() << endl;
 
   poses_.clear();
   string map_id = "/map";
@@ -331,7 +332,7 @@ void ASTAR::update_waypoints(double *robot_pose)
 // smooth generated path
 void ASTAR::smooth_path(double weight_data, double weight_smooth)
 {
-  double tolerance = 0.00001;
+  double tolerance = 0.001;
 
   // smooth paths
 
@@ -361,7 +362,7 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
 
     for (int i = 0; i < smooth_waypoints_new.size(); i++)
     {
-        std::cout << "combined error: " << combined_error << std::endl;
+      // std::cout << "combined error: " << combined_error << std::endl;
 
       error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i).y - smooth_waypoints_.at(i + 1).y, 2);
       combined_error = combined_error + error;
@@ -427,6 +428,7 @@ bool ASTAR::path_search()
     // Mark cell at the removed node position as closed
     gridmap_.at(current_node.y).at(current_node.x).closed = 1;
 
+    gridmap_.at(current_node.y).at(current_node.x).expand = expand;
     expand++;
 
     // Check the each of the neighbours on the left, above, right and below the current node
@@ -434,19 +436,21 @@ bool ASTAR::path_search()
     {
       neighbour_node.x = current_node.x + neighbour_positions.at(i).at(0);
       neighbour_node.y = current_node.y + neighbour_positions.at(i).at(1);
-      g_cost++;
 
       if (neighbour_node.x < 0 || neighbour_node.y > 33 || neighbour_node.y < 0 || neighbour_node.x > 64)
       {
         continue;
       }
+      if (gridmap_.at(neighbour_node.y).at(neighbour_node.x).occupied != 0)
+      {
+        continue;
+      }
 
-      neighbour_node.cost = g_cost + gridmap_.at(neighbour_node.y).at(neighbour_node.x).heuristic;
+      neighbour_node.cost = g_cost + lambda_ * gridmap_.at(neighbour_node.y).at(neighbour_node.x).heuristic;
 
       // If the neighbour node cell is not already closed then continue
       if (gridmap_.at(neighbour_node.y).at(neighbour_node.x).closed != 1)
       {
-
         // Flag to check if neighbour node is in the open list already
         neighbour_in_open_list = false;
 
@@ -472,10 +476,11 @@ bool ASTAR::path_search()
         if (neighbour_in_open_list == false)
         {
           open_list.push_back(neighbour_node);
-          gridmap_.at(neighbour_node.y).at(neighbour_node.x).expand = expand;
         }
       }
     }
+
+    g_cost++;
 
     // Sort the open list so that the lowest cost node is at the back/end
     open_list = descending_sort(open_list);

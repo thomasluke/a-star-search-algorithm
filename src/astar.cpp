@@ -257,7 +257,7 @@ void ASTAR::policy(Node start_node, Node goal_node)
   int grid_x;
   int grid_y;
 
-  while (current.x != start_node.x && current.y != start_node.y)
+  while (current.x != start_node.x || current.y != start_node.y)
   {
 
     for (int i = 0; i < neighbour_positions.size(); i++)
@@ -266,7 +266,12 @@ void ASTAR::policy(Node start_node, Node goal_node)
       grid_x = current.x + neighbour_positions.at(i).at(0);
       grid_y = current.y + neighbour_positions.at(i).at(1);
 
-      neighbour_grid = gridmap_.at(neighbour_node.y).at(neighbour_node.x);
+      if (grid_x < 0 || grid_y > 33 || grid_y < 0 || grid_x > 64)
+      {
+        continue;
+      }
+
+      neighbour_grid = gridmap_.at(grid_y).at(grid_x);
 
       if (neighbour_grid.expand < min_cost_neighbour_grid.expand)
       {
@@ -280,7 +285,7 @@ void ASTAR::policy(Node start_node, Node goal_node)
     current = neighbour_node;
     optimum_policy_.push_back(current);
   }
-  std::cout << "Optimum Policy Size: " << optimum_policy_.size() << std::endl;
+  std::cout << "optimum policy size" << optimum_policy_.size() << std::endl;
 }
 
 // update waypoints
@@ -299,6 +304,8 @@ void ASTAR::update_waypoints(double *robot_pose)
   }
 
   smooth_path(0.5, 0.3);
+
+  std::cout<<waypoints_.size()<<endl;
 
   poses_.clear();
   string map_id = "/map";
@@ -331,7 +338,7 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
   // YOUR CODE GOES HERE
 
   double error;
-  double combined_error;
+  double combined_error = 1;
 
   vector<Waypoint> smooth_waypoints_ = waypoints_;
   std::cout << "Smooth waypoints size: " << smooth_waypoints_.size() << std::endl;
@@ -345,17 +352,21 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
   {
     for (int i = 1; i < waypoints_.size() - 1; i++)
     {
-      smooth_waypoints_new.at(i - 1).x = smooth_waypoints_.at(i).x - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).x) + (weight_data * waypoints_.at(i).x) + (weight_smooth * (smooth_waypoints_.at(i - 1).x)) + (weight_smooth * (smooth_waypoints_.at(i + 1).x));
-      smooth_waypoints_new.at(i - 1).y = smooth_waypoints_.at(i).y - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).y) + (weight_data * waypoints_.at(i).y) + (weight_smooth * (smooth_waypoints_.at(i - 1).y)) + (weight_smooth * (smooth_waypoints_.at(i + 1).y));
+      smooth_waypoints_new.at(i - 1).x = smooth_waypoints_.at(i).x - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).x) + (weight_data * smooth_waypoints_.at(i).x) + (weight_smooth * (smooth_waypoints_.at(i - 1).x)) + (weight_smooth * (smooth_waypoints_.at(i + 1).x));
+      smooth_waypoints_new.at(i - 1).y = smooth_waypoints_.at(i).y - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).y) + (weight_data * smooth_waypoints_.at(i).y) + (weight_smooth * (smooth_waypoints_.at(i - 1).y)) + (weight_smooth * (smooth_waypoints_.at(i + 1).y));
+      waypoints_.at(i) = smooth_waypoints_new.at(i - 1);
     }
 
     combined_error = 0;
 
     for (int i = 0; i < smooth_waypoints_new.size(); i++)
     {
+        std::cout << "combined error: " << combined_error << std::endl;
+
       error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i).y - smooth_waypoints_.at(i + 1).y, 2);
       combined_error = combined_error + error;
     }
+    smooth_waypoints_ = waypoints_;
   }
 }
 
@@ -397,6 +408,7 @@ bool ASTAR::path_search()
   Node neighbour_node;
   vector<Node> open_list = {start_node};
   double heuristic;
+  double g_cost = 1;
   double expand = 0;
   bool neighbour_in_open_list = false;
 
@@ -407,7 +419,7 @@ bool ASTAR::path_search()
   vector<vector<int>> neighbour_positions = {left, above, right, below};
 
   // Repeat until the goal node is found
-  while (current_node.x != goal_node.x && current_node.y != goal_node.y)
+  while (current_node.x != goal_node.x || current_node.y != goal_node.y)
   {
     //Remove lowest cost node from the open list
     open_list.erase(open_list.end() - 1);
@@ -422,16 +434,24 @@ bool ASTAR::path_search()
     {
       neighbour_node.x = current_node.x + neighbour_positions.at(i).at(0);
       neighbour_node.y = current_node.y + neighbour_positions.at(i).at(1);
-      neighbour_node.cost = current_node.cost + 1;
+      g_cost++;
+
+      if (neighbour_node.x < 0 || neighbour_node.y > 33 || neighbour_node.y < 0 || neighbour_node.x > 64)
+      {
+        continue;
+      }
+
+      neighbour_node.cost = g_cost + gridmap_.at(neighbour_node.y).at(neighbour_node.x).heuristic;
 
       // If the neighbour node cell is not already closed then continue
       if (gridmap_.at(neighbour_node.y).at(neighbour_node.x).closed != 1)
       {
+
         // Flag to check if neighbour node is in the open list already
         neighbour_in_open_list = false;
 
         // Cycle through every cell in the open list to check whether the neighbour is already present
-        for (int j = 0; i < open_list.size(); j++)
+        for (int j = 0; j < open_list.size(); j++)
         {
           // If the neighbour node is in the open list
           if (open_list.at(j).x == neighbour_node.x && open_list.at(j).y == neighbour_node.y)
@@ -439,7 +459,7 @@ bool ASTAR::path_search()
             // Set the flag for neighbour being in the open list
             neighbour_in_open_list = true;
 
-            // Id the neighbour node has a lower cost than the same node in the open list,
+            // If the neighbour node has a lower cost than the same node in the open list,
             // then replace the node in the open list
             if (neighbour_node.cost < open_list.at(j).cost)
             {
@@ -456,6 +476,7 @@ bool ASTAR::path_search()
         }
       }
     }
+
     // Sort the open list so that the lowest cost node is at the back/end
     open_list = descending_sort(open_list);
 

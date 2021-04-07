@@ -286,6 +286,7 @@ void ASTAR::policy(Node start_node, Node goal_node)
     optimum_policy_.push_back(current);
     std::cout << min_cost_neighbour_grid.expand << endl;
   }
+  // std::reverse(optimum_policy_.begin(),optimum_policy_.end());
   std::cout << "optimum policy size" << optimum_policy_.size() << std::endl;
 }
 
@@ -303,10 +304,11 @@ void ASTAR::update_waypoints(double *robot_pose)
     w.y = grid2meterY(optimum_policy_[i].y);
     waypoints_.push_back(w);
   }
+  // waypoints_.erase(waypoints_.begin());
 
   // smooth_path(0.5, 0.3);
 
-  std::cout << waypoints_.size() << endl;
+ print_waypoints(waypoints_);
 
   poses_.clear();
   string map_id = "/map";

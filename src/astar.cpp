@@ -257,6 +257,8 @@ void ASTAR::policy(Node start_node, Node goal_node)
   int grid_x;
   int grid_y;
 
+  optimum_policy_.push_back(current);
+
   while (current.x != start_node.x || current.y != start_node.y)
   {
 
@@ -281,12 +283,12 @@ void ASTAR::policy(Node start_node, Node goal_node)
         min_cost_neighbour_grid = neighbour_grid;
       }
     }
-
     current = neighbour_node;
     optimum_policy_.push_back(current);
+
     std::cout << min_cost_neighbour_grid.expand << endl;
   }
-  // std::reverse(optimum_policy_.begin(),optimum_policy_.end());
+  std::reverse(optimum_policy_.begin(), optimum_policy_.end());
   std::cout << "optimum policy size" << optimum_policy_.size() << std::endl;
 }
 
@@ -306,9 +308,9 @@ void ASTAR::update_waypoints(double *robot_pose)
   }
   // waypoints_.erase(waypoints_.begin());
 
-  // smooth_path(0.5, 0.3);
+  smooth_path(0.5, 0.3);
 
- print_waypoints(waypoints_);
+  print_waypoints(waypoints_);
 
   poses_.clear();
   string map_id = "/map";
@@ -334,7 +336,7 @@ void ASTAR::update_waypoints(double *robot_pose)
 // smooth generated path
 void ASTAR::smooth_path(double weight_data, double weight_smooth)
 {
-  double tolerance = 0.001;
+  double tolerance = 0.00001;
 
   // smooth paths
 
@@ -357,7 +359,7 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
     {
       smooth_waypoints_new.at(i - 1).x = smooth_waypoints_.at(i).x - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).x) + (weight_data * smooth_waypoints_.at(i).x) + (weight_smooth * (smooth_waypoints_.at(i - 1).x)) + (weight_smooth * (smooth_waypoints_.at(i + 1).x));
       smooth_waypoints_new.at(i - 1).y = smooth_waypoints_.at(i).y - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).y) + (weight_data * smooth_waypoints_.at(i).y) + (weight_smooth * (smooth_waypoints_.at(i - 1).y)) + (weight_smooth * (smooth_waypoints_.at(i + 1).y));
-      waypoints_.at(i) = smooth_waypoints_new.at(i - 1);
+      smooth_waypoints_.at(i) = smooth_waypoints_new.at(i - 1);
     }
 
     combined_error = 0;
@@ -366,16 +368,17 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
     {
       // std::cout << "combined error: " << combined_error << std::endl;
 
-      error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i).y - smooth_waypoints_.at(i + 1).y, 2);
+      error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i + 1).y - smooth_waypoints_.at(i + 1).y, 2);
       combined_error = combined_error + error;
     }
-    smooth_waypoints_ = waypoints_;
   }
+  waypoints_ = smooth_waypoints_;
 }
 
 // search for astar path planning
 bool ASTAR::path_search()
 {
+
   setup_gridmap();
 
   std::cout << "############################################" << std::endl;

@@ -215,13 +215,21 @@ void ASTAR::init_heuristic(Node goal_node)
 
   // YOUR CODE GOES HERE
 
+  std::cout << std::endl
+            << "Initialising heuristic cost grid" << std::endl;
+
+  // Looping through each node/grid in the gripmap_
   for (int j = 0; j < gridmap_.size(); j++)
   {
     for (int i = 0; i < gridmap_.at(j).size(); i++)
     {
+      // Change in x distance between the current node/grid and the goal_node position
       int x = std::abs(i - goal_node.x);
+
+      // Change in x distance between the current node/grid and the goal_node position
       int y = std::abs(j - goal_node.y);
 
+      // Heuristic for each grid/node equals combined x and y distance, which is equivelant to the number of moves to reach the goal node
       gridmap_.at(j).at(i).heuristic = x + y;
     }
   }
@@ -230,7 +238,8 @@ void ASTAR::init_heuristic(Node goal_node)
 // generate policy
 void ASTAR::policy(Node start_node, Node goal_node)
 {
-  std::cout << "############################################" << std::endl;
+  std::cout << std::endl
+            << "############################################" << std::endl;
   std::cout << "#         Retrieve optimum policy          #" << std::endl;
   std::cout << "############################################" << std::endl;
 
@@ -246,8 +255,13 @@ void ASTAR::policy(Node start_node, Node goal_node)
   // YOUR CODE GOES HERE
 
   Grid neighbour_grid;
+
+  // Initialise the min_cost_neighbour_grid as the current goal grid/node. Goal grid/node should always have higher expad value than the previous in the path.
   Grid min_cost_neighbour_grid = gridmap_.at(current.y).at(current.x);
+
   Node neighbour_node;
+
+  // Setting up a vector of direction vectors to check all neighbour nodes/grids in a for loop
   vector<int> left = {-1, 0};
   vector<int> above = {0, 1};
   vector<int> right = {1, 0};
@@ -257,17 +271,21 @@ void ASTAR::policy(Node start_node, Node goal_node)
   int grid_x;
   int grid_y;
 
+  // Initialising the optimum_policy with the current node/grid
   optimum_policy_.push_back(current);
 
+  // Keep adding to the optimum policy until the start node is reached
   while (current.x != start_node.x || current.y != start_node.y)
   {
 
     for (int i = 0; i < neighbour_positions.size(); i++)
     {
 
+      // Calculate neighbour position
       grid_x = current.x + neighbour_positions.at(i).at(0);
       grid_y = current.y + neighbour_positions.at(i).at(1);
 
+      // Skip neighbour if it is positioned outside of the map
       if (grid_x < 0 || grid_y > 33 || grid_y < 0 || grid_x > 64)
       {
         continue;
@@ -275,6 +293,7 @@ void ASTAR::policy(Node start_node, Node goal_node)
 
       neighbour_grid = gridmap_.at(grid_y).at(grid_x);
 
+      // Set the current neighbour to min_cost_neighbour_grid if it's expand value is the lowest
       if (neighbour_grid.expand < min_cost_neighbour_grid.expand)
       {
         neighbour_node.x = grid_x;
@@ -283,13 +302,13 @@ void ASTAR::policy(Node start_node, Node goal_node)
         min_cost_neighbour_grid = neighbour_grid;
       }
     }
+
+    // Set current node to the lowest cost neighbour and push it to the back of the optimum policy path
     current = neighbour_node;
     optimum_policy_.push_back(current);
-
-    std::cout << min_cost_neighbour_grid.expand << endl;
   }
+  // Reverse optimum policy path order lowest to highest exapnd value. So that it matches the order expected in the update_waypoints() function
   std::reverse(optimum_policy_.begin(), optimum_policy_.end());
-  std::cout << "optimum policy size" << optimum_policy_.size() << std::endl;
 }
 
 // update waypoints
@@ -308,9 +327,9 @@ void ASTAR::update_waypoints(double *robot_pose)
   }
   // waypoints_.erase(waypoints_.begin());
 
-  smooth_path(0.5, 0.3);
+  smooth_path(0.5, 0.03);
 
-  print_waypoints(waypoints_);
+  // print_waypoints(waypoints_);
 
   poses_.clear();
   string map_id = "/map";
@@ -342,37 +361,45 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
 
   // YOUR CODE GOES HERE
 
+  std::cout << std::endl
+            << "Smoothing calculated path" << std::endl;
+
   double error;
-  double combined_error = 1;
+  double sum_error = 1;
 
   vector<Waypoint> smooth_waypoints_ = waypoints_;
-  std::cout << "Smooth waypoints size: " << smooth_waypoints_.size() << std::endl;
-  std::cout << "ERROR HERE BECAUSE NOT ENOUGH WAYPOINTS??? VECTOR SIZE IS TRYING TO BE LESS THAN 0" << std::endl;
 
+  // Initialise the calculated new smoothed waypoints length to be 2 shorter, recmoving the start and goal waypoints
   int length = smooth_waypoints_.size() - 2;
-
   vector<Waypoint> smooth_waypoints_new(length);
 
-  while (combined_error > tolerance)
+  // Keep iterating loop, setting waypoints = new smooth waypoints, until the summed error < tolerance
+  while (sum_error > tolerance)
   {
+    // Iterate through every waypoint
     for (int i = 1; i < waypoints_.size() - 1; i++)
     {
+      // Smoothing equations for x and y coordinates
       smooth_waypoints_new.at(i - 1).x = smooth_waypoints_.at(i).x - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).x) + (weight_data * smooth_waypoints_.at(i).x) + (weight_smooth * (smooth_waypoints_.at(i - 1).x)) + (weight_smooth * (smooth_waypoints_.at(i + 1).x));
       smooth_waypoints_new.at(i - 1).y = smooth_waypoints_.at(i).y - ((weight_data + 2 * weight_smooth) * smooth_waypoints_.at(i).y) + (weight_data * smooth_waypoints_.at(i).y) + (weight_smooth * (smooth_waypoints_.at(i - 1).y)) + (weight_smooth * (smooth_waypoints_.at(i + 1).y));
-      smooth_waypoints_.at(i) = smooth_waypoints_new.at(i - 1);
+
+      // Set the waypoints = new smooth waypoints to be used when recalculating the new smooth waypoint on the next iteration.
+      waypoints_.at(i) = smooth_waypoints_new.at(i - 1);
     }
 
-    combined_error = 0;
+    // Re-initialise sum_error to be 0 for every loop.
+    sum_error = 0;
 
+    // Calculating the smoothing error for each waypoint and summing the total error of all waypoints
     for (int i = 0; i < smooth_waypoints_new.size(); i++)
     {
-      // std::cout << "combined error: " << combined_error << std::endl;
-
+      // Smoothing error equation
       error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i + 1).y - smooth_waypoints_.at(i + 1).y, 2);
-      combined_error = combined_error + error;
+      sum_error = sum_error + error;
     }
+
+    smooth_waypoints_ = waypoints_;
   }
-  waypoints_ = smooth_waypoints_;
 }
 
 // search for astar path planning
@@ -412,12 +439,18 @@ bool ASTAR::path_search()
 
   Node current_node = start_node;
   Node neighbour_node;
+
+  // Initialising the open list with the start_node
   vector<Node> open_list = {start_node};
+
   double heuristic;
+
+  // Initialising g cost = 1 for the 1st set of neighbour grids/nodes
   double g_cost = 1;
   double expand = 0;
   bool neighbour_in_open_list = false;
 
+  // Setting up a vector of direction vectors to check all neighbour nodes/grids in a for loop
   vector<int> left = {-1, 0};
   vector<int> above = {0, 1};
   vector<int> right = {1, 0};
@@ -434,23 +467,28 @@ bool ASTAR::path_search()
     gridmap_.at(current_node.y).at(current_node.x).closed = 1;
 
     gridmap_.at(current_node.y).at(current_node.x).expand = expand;
+
     expand++;
 
-    // Check the each of the neighbours on the left, above, right and below the current node
+    // Check each of the neighbours on the left, above, right and below the current node
     for (int i = 0; i < neighbour_positions.size(); i++)
     {
       neighbour_node.x = current_node.x + neighbour_positions.at(i).at(0);
       neighbour_node.y = current_node.y + neighbour_positions.at(i).at(1);
 
+      // Skip the neighour if it is outside of the map
       if (neighbour_node.x < 0 || neighbour_node.y > 33 || neighbour_node.y < 0 || neighbour_node.x > 64)
       {
         continue;
       }
+
+      // Skip the neighbour if it is in a wall
       if (gridmap_.at(neighbour_node.y).at(neighbour_node.x).occupied != 0)
       {
         continue;
       }
 
+      // Combined cost = g cost (i,j) + lambda * h cost (i,j)
       neighbour_node.cost = g_cost + lambda_ * gridmap_.at(neighbour_node.y).at(neighbour_node.x).heuristic;
 
       // If the neighbour node cell is not already closed then continue
@@ -485,22 +523,26 @@ bool ASTAR::path_search()
       }
     }
 
+    // Increase the g cost by 1 for each move to a new current (previously neighbour) node
     g_cost++;
 
     // Sort the open list so that the lowest cost node is at the back/end
     open_list = descending_sort(open_list);
 
-    // Update this here before the while loop condition
+    // Update this here before the while loop condition that checks for whether the goal node has been reached
     current_node = open_list.back();
   }
 
-  std::cout << "\nupdating policy" << endl;
+  std::cout << "\nUpdating policy" << endl;
   policy(start_node, goal_node);
 
-  std::cout << "\nupdating waypoints" << endl;
+  std::cout << "\nUpdating waypoints" << endl;
   update_waypoints(start_);
 
   initialised_ = true;
+
+  std::cout << std::endl
+            << "A* path sucessfully generated" << std::endl;
 
   publish_plan(poses_);
 

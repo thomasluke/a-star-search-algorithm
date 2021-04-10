@@ -266,7 +266,15 @@ void ASTAR::policy(Node start_node, Node goal_node)
   vector<int> above = {0, 1};
   vector<int> right = {1, 0};
   vector<int> below = {0, -1};
+  // Commenting allows diagonal movements
   vector<vector<int>> neighbour_positions = {left, above, right, below};
+
+  // // Uncommenting allows diagonal movements
+  // vector<int> nw = {-1, 1};
+  // vector<int> ne = {1, 1};
+  // vector<int> se = {1, -1};
+  // vector<int> sw = {-1, -1};
+  // vector<vector<int>> neighbour_positions = {left, above, right, below, nw, ne, se, sw};
 
   int grid_x;
   int grid_y;
@@ -457,7 +465,15 @@ bool ASTAR::path_search()
   vector<int> above = {0, 1};
   vector<int> right = {1, 0};
   vector<int> below = {0, -1};
+  // Commenting allows diagonal movements
   vector<vector<int>> neighbour_positions = {left, above, right, below};
+
+  // // Uncommenting allows diagonal movements
+  // vector<int> nw = {-1, 1};
+  // vector<int> ne = {1, 1};
+  // vector<int> se = {1, -1};
+  // vector<int> sw = {-1, -1};
+  // vector<vector<int>> neighbour_positions = {left, above, right, below, nw, ne, se, sw};
 
   // Repeat until the goal node is found
   while (current_node.x != goal_node.x || current_node.y != goal_node.y)
@@ -492,6 +508,15 @@ bool ASTAR::path_search()
 
       // Combined cost = g cost (i,j) + lambda * h cost (i,j)
       neighbour_node.cost = g_cost + lambda_ * gridmap_.at(neighbour_node.y).at(neighbour_node.x).heuristic;
+
+      // // Uncommenting allows diagonal movements
+      // if (i > 3)
+      // {
+      //   // Add additional 0.44 cost asscoated with diagonal movements.
+      //   // Using pythagora's triangle thereom, sqrt(1^2 + 1^2) = move distance = 1.44, therefore additional cost = 0.44 = 1.44 - 1
+      //   neighbour_node.cost = neighbour_node.cost + 0.44;
+      //   expand = expand + 0.44;
+      // }
 
       // If the neighbour node cell is not already closed then continue
       if (gridmap_.at(neighbour_node.y).at(neighbour_node.x).closed != 1)

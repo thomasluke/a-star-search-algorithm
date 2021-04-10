@@ -327,7 +327,7 @@ void ASTAR::update_waypoints(double *robot_pose)
   }
   // waypoints_.erase(waypoints_.begin());
 
-  smooth_path(0.5, 0.03);
+  smooth_path(0.5, 0.02);
 
   // print_waypoints(waypoints_);
 
@@ -365,6 +365,8 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
             << "Smoothing calculated path" << std::endl;
 
   double error;
+
+  // Set higher than tolerance to enter the while loop  - while (sum_error > tolerance)
   double sum_error = 1;
 
   vector<Waypoint> smooth_waypoints_ = waypoints_;
@@ -394,7 +396,7 @@ void ASTAR::smooth_path(double weight_data, double weight_smooth)
     for (int i = 0; i < smooth_waypoints_new.size(); i++)
     {
       // Smoothing error equation
-      error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_.at(i + 1).y - smooth_waypoints_.at(i + 1).y, 2);
+      error = std::pow(smooth_waypoints_new.at(i).x - smooth_waypoints_.at(i + 1).x, 2) + std::pow(smooth_waypoints_new.at(i).y - smooth_waypoints_.at(i + 1).y, 2);
       sum_error = sum_error + error;
     }
 

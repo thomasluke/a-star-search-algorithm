@@ -256,7 +256,8 @@ void ASTAR::policy(Node start_node, Node goal_node)
 
   Grid neighbour_grid;
 
-  // Initialise the min_cost_neighbour_grid as the current goal grid/node. Goal grid/node should always have higher expad value than the previous in the path.
+  // Initialise the min_cost_neighbour_grid as the current goal grid/node. 
+  // Goal grid/node should always have higher expad value than the previous in the path.
   Grid min_cost_neighbour_grid = gridmap_.at(current.y).at(current.x);
 
   Node neighbour_node;
@@ -315,7 +316,8 @@ void ASTAR::policy(Node start_node, Node goal_node)
     current = neighbour_node;
     optimum_policy_.push_back(current);
   }
-  // Reverse optimum policy path order lowest to highest exapnd value. So that it matches the order expected in the update_waypoints() function
+  // Reverse optimum policy path order lowest to highest exapnd value. 
+  // So that it matches the order expected in the update_waypoints() function
   std::reverse(optimum_policy_.begin(), optimum_policy_.end());
 }
 
